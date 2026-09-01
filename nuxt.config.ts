@@ -2,6 +2,9 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-01-01",
   devtools: { enabled: false },
   css: ["~/assets/css/main.css"],
+  routeRules: {
+    "/admin/**": { ssr: false },
+  },
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || "",
@@ -10,6 +13,7 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    baseURL: process.env.NUXT_APP_BASE_URL || "/",
     head: {
       title: "IC. São Judas — Relatório de Celebração",
       link: [
