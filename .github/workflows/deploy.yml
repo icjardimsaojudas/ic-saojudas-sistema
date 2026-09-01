@@ -21,7 +21,9 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install -g npm@11
+          npm install
 
       - name: Generate static site
         run: npx nuxt generate
