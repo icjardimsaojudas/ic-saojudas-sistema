@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="toolbar" v-if="step > 1">
+      <button class="btn btn--ghost" @click="step = step - 1">← Voltar</button>
+    </div>
     <h1>Relatório da <em>Celebração</em></h1>
     <p>Selecione a celebração, o seu ministério e preencha as informações.</p>
 
@@ -50,7 +53,6 @@
           </div>
         </div>
       </div>
-      <button class="btn btn--ghost" @click="step = 1">Voltar</button>
     </section>
 
     <!-- Passo 3: preencher formulário -->
@@ -82,7 +84,6 @@
         </div>
       </div>
 
-      <button class="btn btn--ghost" @click="step = 2">Voltar</button>
       <button class="btn btn--primary" :disabled="submitting" @click="submit">
         {{ submitting ? 'Enviando...' : 'Enviar registro' }}
       </button>

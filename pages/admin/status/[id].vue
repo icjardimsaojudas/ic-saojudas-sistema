@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="toolbar">
+      <NuxtLink to="/admin" class="btn btn--ghost">← Voltar</NuxtLink>
+    </div>
     <h1>Status do <em>Registro</em></h1>
     <p v-if="celebration" class="muted">{{ celebration.label }} · {{ formatDate(celebration.date) }}</p>
 
@@ -19,8 +22,6 @@
         </div>
       </div>
     </template>
-
-    <NuxtLink to="/admin" class="btn btn--ghost">Voltar</NuxtLink>
   </div>
 </template>
 

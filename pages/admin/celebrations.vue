@@ -34,8 +34,20 @@
         <label><input v-model="form.is_special" type="checkbox" style="width:auto;margin-right:6px;" />Celebração temática/especial</label>
       </div>
       <div class="field">
-        <label><input v-model="form.is_recurring" type="checkbox" style="width:auto;margin-right:6px;" />Celebração recorrente (ex: culto de domingo — aparece só 1x por semana para os ministérios)</label>
+        <label><input v-model="form.is_recurring" type="checkbox" style="width:auto;margin-right:6px;" />Celebração recorrente (aparece só 1x por semana para os ministérios)</label>
       </div>
+
+      <label style="font-size:0.86rem;font-weight:600;color:var(--orange-900);">Ministérios que participam</label>
+      <p class="muted" style="margin-top:2px;">Todos vêm marcados por padrão — desmarque os que não se aplicam.</p>
+      <div class="grid-2">
+        <div v-for="m in allMinistries" :key="m.id" class="field" style="margin-bottom:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input type="checkbox" style="width:auto;" v-model="selectedMinistryIds" :value="m.id" />
+            {{ m.name }}
+          </label>
+        </div>
+      </div>
+
       <button class="btn btn--primary" :disabled="saving" @click="save">
         {{ saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar celebração" }}
       </button>
@@ -49,6 +61,7 @@
         <div>
           <strong>{{ c.label }}</strong>
           <span v-if="c.is_recurring" class="badge badge--done" style="margin-left:8px;">Recorrente</span>
+          <span v-if="c.archived" class="badge badge--pending" style="margin-left:8px;">Arquivada</span>
           <div class="muted">{{ formatDate(c.date) }} · {{ c.time?.slice(0,5) }} · {{ c.salon }}</div>
         </div>
         <div>
@@ -66,6 +79,8 @@ const { call } = useApi();
 const supabase = useSupabaseClient();
 
 const celebrations = ref<any[]>([]);
+const allMinistries = ref<any[]>([]);
+const selectedMinistryIds = ref<string[]>([]);
 const loading = ref(true);
 const saving = ref(false);
 const errorMsg = ref("");
@@ -98,11 +113,17 @@ async function getToken() {
 async function load() {
   loading.value = true;
   const token = await getToken();
-  celebrations.value = await call("/celebrations?all=true", { token });
+  const [cels, mins] = await Promise.all([
+    call("/celebrations?all=true", { token }),
+    call("/ministries?all=true", { token }),
+  ]);
+  celebrations.value = cels;
+  allMinistries.value = mins.filter((m: any) => m.active);
+  if (!editingId.value) selectedMinistryIds.value = allMinistries.value.map((m: any) => m.id);
   loading.value = false;
 }
 
-function startEdit(c: any) {
+async function startEdit(c: any) {
   editingId.value = c.id;
   form.date = c.date;
   form.time = c.time?.slice(0, 5);
@@ -111,12 +132,18 @@ function startEdit(c: any) {
   form.campus = c.campus;
   form.is_special = c.is_special;
   form.is_recurring = c.is_recurring;
+
+  const token = await getToken();
+  const status = await call(`/celebrations/${c.id}/status`, { token });
+  selectedMinistryIds.value = status.map((s: any) => s.ministries?.id).filter(Boolean);
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function cancelEdit() {
   editingId.value = null;
   Object.assign(form, emptyForm());
+  selectedMinistryIds.value = allMinistries.value.map((m) => m.id);
 }
 
 async function save() {
@@ -128,11 +155,12 @@ async function save() {
   saving.value = true;
   try {
     const token = await getToken();
+    const body = { ...form, ministry_ids: selectedMinistryIds.value };
     if (editingId.value) {
-      await call(`/celebrations/${editingId.value}`, { method: "PUT", token, body: { ...form } });
+      await call(`/celebrations/${editingId.value}`, { method: "PUT", token, body });
       successMsg.value = "Celebração atualizada!";
     } else {
-      await call("/celebrations", { method: "POST", token, body: { ...form } });
+      await call("/celebrations", { method: "POST", token, body });
       successMsg.value = "Celebração criada!";
     }
     cancelEdit();
