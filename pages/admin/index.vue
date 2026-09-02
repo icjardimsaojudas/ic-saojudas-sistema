@@ -5,7 +5,7 @@
       <div>
         <NuxtLink to="/admin/ministries" class="btn btn--ghost">Ministérios</NuxtLink>
         <NuxtLink to="/admin/celebrations" class="btn btn--primary" style="margin-left:8px;">
-          Nova celebração
+          Celebrações
         </NuxtLink>
       </div>
     </div>
@@ -20,11 +20,12 @@
       <div class="list-item" style="border:none;padding:0;">
         <div>
           <strong>{{ c.label }}</strong>
+          <span v-if="c.is_recurring" class="badge badge--done" style="margin-left:8px;">Recorrente</span>
           <div class="muted">{{ formatDate(c.date) }} · {{ c.time?.slice(0,5) }} · {{ c.salon || c.campus }}</div>
         </div>
         <div style="text-align:right;">
           <NuxtLink :to="`/admin/status/${c.id}`" class="btn btn--ghost">Ver status</NuxtLink>
-          <NuxtLink :to="`/admin/report/${c.id}`" class="btn btn--ghost" style="margin-left:8px;">Dossiê</NuxtLink>
+          <NuxtLink :to="`/admin/report/${c.id}`" class="btn btn--ghost" style="margin-left:8px;">Relatório</NuxtLink>
         </div>
       </div>
     </div>
@@ -34,6 +35,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: "admin" });
 const { call } = useApi();
+const supabase = useSupabaseClient();
 const celebrations = ref<any[]>([]);
 const loading = ref(true);
 
@@ -45,7 +47,9 @@ function formatDate(d: string) {
 
 onMounted(async () => {
   try {
-    celebrations.value = await call("/celebrations");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token || "";
+    celebrations.value = await call("/celebrations?all=true", { token });
   } finally {
     loading.value = false;
   }

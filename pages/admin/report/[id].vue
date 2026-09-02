@@ -1,6 +1,14 @@
 <template>
   <div class="page page--wide">
-    <h1>Dossiê da <em>Celebração</em></h1>
+    <div class="toolbar">
+      <NuxtLink to="/admin" class="btn btn--ghost">← Voltar</NuxtLink>
+    </div>
+    <div class="list-item" style="border:none;padding:0 0 8px;">
+      <h1 style="margin:0;">Relatório da <em>Celebração</em></h1>
+      <button class="btn btn--gold" :disabled="!submissions.length" @click="downloadExcel">
+        Baixar Excel
+      </button>
+    </div>
     <p v-if="celebration" class="muted">{{ celebration.label }} · {{ formatDate(celebration.date) }} · {{ celebration.salon }}</p>
 
     <div v-if="loading" class="muted">Carregando...</div>
@@ -17,8 +25,6 @@
         </div>
       </div>
     </div>
-
-    <NuxtLink to="/admin" class="btn btn--ghost">Voltar</NuxtLink>
   </div>
 </template>
 
@@ -47,4 +53,19 @@ onMounted(async () => {
   submissions.value = res.submissions;
   loading.value = false;
 });
+
+async function downloadExcel() {
+  const XLSX = await import("xlsx");
+  const rows = submissions.value.map((s) => ({
+    Ministério: s.ministries?.name || "",
+    Respondente: s.respondent_name,
+    Contato: s.respondent_contact,
+    ...s.data,
+  }));
+  const sheet = XLSX.utils.json_to_sheet(rows);
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, "Relatório");
+  const fileName = `relatorio-${celebration.value?.label || "celebracao"}-${celebration.value?.date || ""}.xlsx`;
+  XLSX.writeFile(book, fileName);
+}
 </script>

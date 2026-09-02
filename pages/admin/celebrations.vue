@@ -1,12 +1,15 @@
 <template>
   <div class="page page--wide">
+    <div class="toolbar">
+      <NuxtLink to="/admin" class="btn btn--ghost">← Voltar</NuxtLink>
+    </div>
     <h1>Celebrações</h1>
 
     <div v-if="errorMsg" class="alert alert--error">{{ errorMsg }}</div>
     <div v-if="successMsg" class="alert alert--success">{{ successMsg }}</div>
 
     <div class="card">
-      <h2>Nova celebração</h2>
+      <h2>{{ editingId ? "Editar celebração" : "Nova celebração" }}</h2>
       <div class="grid-2">
         <div class="field">
           <label>Data</label>
@@ -30,9 +33,13 @@
       <div class="field">
         <label><input v-model="form.is_special" type="checkbox" style="width:auto;margin-right:6px;" />Celebração temática/especial</label>
       </div>
-      <button class="btn btn--primary" :disabled="saving" @click="createCelebration">
-        {{ saving ? "Salvando..." : "Criar celebração" }}
+      <div class="field">
+        <label><input v-model="form.is_recurring" type="checkbox" style="width:auto;margin-right:6px;" />Celebração recorrente (ex: culto de domingo — aparece só 1x por semana para os ministérios)</label>
+      </div>
+      <button class="btn btn--primary" :disabled="saving" @click="save">
+        {{ saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar celebração" }}
       </button>
+      <button v-if="editingId" class="btn btn--ghost" style="margin-left:8px;" @click="cancelEdit">Cancelar</button>
     </div>
 
     <h2>Celebrações cadastradas</h2>
@@ -41,9 +48,13 @@
       <div class="list-item" style="border:none;padding:0;">
         <div>
           <strong>{{ c.label }}</strong>
+          <span v-if="c.is_recurring" class="badge badge--done" style="margin-left:8px;">Recorrente</span>
           <div class="muted">{{ formatDate(c.date) }} · {{ c.time?.slice(0,5) }} · {{ c.salon }}</div>
         </div>
-        <button class="btn btn--danger" @click="remove(c.id)">Excluir</button>
+        <div>
+          <button class="btn btn--ghost" @click="startEdit(c)">Editar</button>
+          <button class="btn btn--danger" style="margin-left:8px;" @click="remove(c.id)">Excluir</button>
+        </div>
       </div>
     </div>
   </div>
@@ -59,15 +70,19 @@ const loading = ref(true);
 const saving = ref(false);
 const errorMsg = ref("");
 const successMsg = ref("");
+const editingId = ref<string | null>(null);
 
-const form = reactive({
+const emptyForm = () => ({
   date: "",
   time: "10:00",
   label: "",
   salon: "",
   campus: "IC. São Judas",
   is_special: false,
+  is_recurring: false,
 });
+
+const form = reactive(emptyForm());
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -82,11 +97,29 @@ async function getToken() {
 
 async function load() {
   loading.value = true;
-  celebrations.value = await call("/celebrations");
+  const token = await getToken();
+  celebrations.value = await call("/celebrations?all=true", { token });
   loading.value = false;
 }
 
-async function createCelebration() {
+function startEdit(c: any) {
+  editingId.value = c.id;
+  form.date = c.date;
+  form.time = c.time?.slice(0, 5);
+  form.label = c.label;
+  form.salon = c.salon || "";
+  form.campus = c.campus;
+  form.is_special = c.is_special;
+  form.is_recurring = c.is_recurring;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  editingId.value = null;
+  Object.assign(form, emptyForm());
+}
+
+async function save() {
   errorMsg.value = "";
   if (!form.date || !form.time || !form.label) {
     errorMsg.value = "Preencha data, horário e nome.";
@@ -95,14 +128,17 @@ async function createCelebration() {
   saving.value = true;
   try {
     const token = await getToken();
-    await call("/celebrations", { method: "POST", token, body: { ...form } });
-    successMsg.value = "Celebração criada!";
-    form.label = "";
-    form.salon = "";
-    form.is_special = false;
+    if (editingId.value) {
+      await call(`/celebrations/${editingId.value}`, { method: "PUT", token, body: { ...form } });
+      successMsg.value = "Celebração atualizada!";
+    } else {
+      await call("/celebrations", { method: "POST", token, body: { ...form } });
+      successMsg.value = "Celebração criada!";
+    }
+    cancelEdit();
     await load();
   } catch (e: any) {
-    errorMsg.value = "Erro ao criar celebração.";
+    errorMsg.value = "Erro ao salvar celebração.";
   } finally {
     saving.value = false;
   }

@@ -1,5 +1,8 @@
 <template>
   <div class="page page--wide">
+    <div class="toolbar">
+      <NuxtLink to="/admin" class="btn btn--ghost">← Voltar</NuxtLink>
+    </div>
     <h1>Ministérios</h1>
 
     <div v-if="errorMsg" class="alert alert--error">{{ errorMsg }}</div>
@@ -12,7 +15,7 @@
         <input v-model="form.name" type="text" placeholder="Ex: Comunicação" />
       </div>
 
-      <label style="font-size:0.86rem;font-weight:600;color:var(--teal-900);">Campos do formulário</label>
+      <label style="font-size:0.86rem;font-weight:600;color:var(--orange-900);">Campos do formulário</label>
       <div v-for="(f, i) in form.fields" :key="i" class="grid-2" style="align-items:end;">
         <div class="field">
           <label>Rótulo (o que o voluntário vê)</label>
@@ -36,9 +39,16 @@
       <div class="list-item" style="border:none;padding:0;">
         <div>
           <strong>{{ m.name }}</strong>
+          <span class="badge" :class="m.active ? 'badge--done' : 'badge--pending'" style="margin-left:8px;">
+            {{ m.active ? "Ativo" : "Inativo" }}
+          </span>
           <div class="muted">{{ (m.fields || []).map((f:any) => f.label).join(", ") }}</div>
         </div>
-        <button class="btn btn--danger" @click="deactivate(m.id)">Desativar</button>
+        <div>
+          <button v-if="m.active" class="btn btn--ghost" @click="toggleActive(m, false)">Desativar</button>
+          <button v-else class="btn btn--ghost" @click="toggleActive(m, true)">Ativar</button>
+          <button class="btn btn--danger" style="margin-left:8px;" @click="remove(m.id)">Excluir</button>
+        </div>
       </div>
     </div>
   </div>
@@ -71,7 +81,8 @@ async function getToken() {
 
 async function load() {
   loading.value = true;
-  ministries.value = await call("/ministries");
+  const token = await getToken();
+  ministries.value = await call("/ministries?all=true", { token });
   loading.value = false;
 }
 
@@ -100,8 +111,14 @@ async function createMinistry() {
   }
 }
 
-async function deactivate(id: string) {
-  if (!confirm("Desativar este ministério?")) return;
+async function toggleActive(m: any, active: boolean) {
+  const token = await getToken();
+  await call(`/ministries/${m.id}`, { method: "PUT", token, body: { active } });
+  await load();
+}
+
+async function remove(id: string) {
+  if (!confirm("Excluir este ministério e todos os registros ligados a ele? Essa ação não pode ser desfeita.")) return;
   const token = await getToken();
   await call(`/ministries/${id}`, { method: "DELETE", token });
   await load();
