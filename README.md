@@ -1,4 +1,4 @@
-# IC. São Judas — Relatório de Celebrações
+# IC. Jardim São Judas — Relatório de Celebrações
 
 Frontend em Nuxt/Vue. Backend completo no Supabase (schema.sql + Edge Function api).
 

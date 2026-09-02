@@ -92,7 +92,7 @@ const emptyForm = () => ({
   time: "10:00",
   label: "",
   salon: "",
-  campus: "IC. São Judas",
+  campus: "IC. Jardim São Judas",
   is_special: false,
   is_recurring: false,
 });

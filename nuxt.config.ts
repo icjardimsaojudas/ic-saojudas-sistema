@@ -15,8 +15,9 @@ export default defineNuxtConfig({
   app: {
     baseURL: process.env.NUXT_APP_BASE_URL || "/",
     head: {
-      title: "IC. São Judas — Relatório de Celebração",
+      title: "IC. Jardim São Judas — Relatório de Celebração",
       link: [
+        { rel: "icon", type: "image/png", href: "/logo-verde.png" },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         {
           rel: "stylesheet",

@@ -1,10 +1,14 @@
 <template>
   <div>
     <header class="topbar">
-      <NuxtLink to="/" class="topbar__brand">IC. São Judas</NuxtLink>
+      <NuxtLink to="/" class="topbar__brand">
+        <img src="/logo-verde.png" alt="IC. Jardim São Judas" class="topbar__logo" />
+        <span>IC. Jardim São Judas</span>
+      </NuxtLink>
       <nav class="topbar__nav">
-        <NuxtLink to="/admin">Administração</NuxtLink>
-        <NuxtLink to="/" style="margin-left:12px;">Responder</NuxtLink>
+        <NuxtLink to="/">Responder</NuxtLink>
+        <NuxtLink to="/organograma">Organograma</NuxtLink>
+        <NuxtLink to="/admin">Administrador</NuxtLink>
       </nav>
     </header>
     <NuxtPage />
