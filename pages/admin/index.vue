@@ -4,9 +4,9 @@
       <h1 style="margin:0;">Painel <em>Admin</em></h1>
       <div>
         <NuxtLink to="/admin/ministries" class="btn btn--ghost">Ministérios</NuxtLink>
-        <NuxtLink to="/admin/celebrations" class="btn btn--ghost" style="margin-left:8px;">Celebrações</NuxtLink>
-        <NuxtLink to="/admin/dashboard" class="btn btn--ghost" style="margin-left:8px;">Dashboard</NuxtLink>
-        <NuxtLink to="/admin/organograma" class="btn btn--primary" style="margin-left:8px;">Organograma</NuxtLink>
+        <NuxtLink to="/admin/celebrations" class="btn btn--ghost">Celebrações</NuxtLink>
+        <NuxtLink to="/admin/dashboard" class="btn btn--ghost">Dashboard</NuxtLink>
+        <NuxtLink to="/admin/organograma" class="btn btn--primary">Organograma</NuxtLink>
       </div>
     </div>
     <p class="muted">Marque o check ou arraste um card para arquivar uma celebração.</p>
@@ -39,9 +39,11 @@
                   <div class="muted">{{ formatDate(c.date) }} · {{ c.time?.slice(0,5) }}</div>
                 </span>
               </label>
-              <div style="text-align:right;white-space:nowrap;">
+              <div>
                 <NuxtLink :to="`/admin/status/${c.id}`" class="btn btn--ghost">Status</NuxtLink>
-                <NuxtLink :to="`/admin/report/${c.id}`" class="btn btn--ghost" style="margin-left:6px;">Relatório</NuxtLink>
+                <NuxtLink :to="`/admin/report/${c.id}`" class="btn btn--ghost">Relatório</NuxtLink>
+                <NuxtLink :to="`/admin/celebrations?edit=${c.id}`" class="btn btn--ghost">Editar</NuxtLink>
+                <button class="btn btn--danger" @click.stop="remove(c.id)">Excluir</button>
               </div>
             </div>
           </div>
@@ -71,7 +73,11 @@
                   <div class="muted">{{ formatDate(c.date) }} · {{ c.time?.slice(0,5) }}</div>
                 </span>
               </label>
-              <NuxtLink :to="`/admin/report/${c.id}`" class="btn btn--ghost">Relatório</NuxtLink>
+              <div>
+                <NuxtLink :to="`/admin/report/${c.id}`" class="btn btn--ghost">Relatório</NuxtLink>
+                <NuxtLink :to="`/admin/celebrations?edit=${c.id}`" class="btn btn--ghost">Editar</NuxtLink>
+                <button class="btn btn--danger" @click.stop="remove(c.id)">Excluir</button>
+              </div>
             </div>
           </div>
         </div>
@@ -121,6 +127,13 @@ async function onDrop(target: "active" | "archived") {
   if (!dragId.value) return;
   await archive(dragId.value, target === "archived");
   dragId.value = null;
+}
+
+async function remove(id: string) {
+  if (!confirm("Excluir esta celebração e todos os registros ligados a ela?")) return;
+  const token = await getToken();
+  await call(`/celebrations/${id}`, { method: "DELETE", token });
+  await load();
 }
 
 onMounted(load);

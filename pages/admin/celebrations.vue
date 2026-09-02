@@ -66,7 +66,7 @@
         </div>
         <div>
           <button class="btn btn--ghost" @click="startEdit(c)">Editar</button>
-          <button class="btn btn--danger" style="margin-left:8px;" @click="remove(c.id)">Excluir</button>
+          <button class="btn btn--danger" @click="remove(c.id)">Excluir</button>
         </div>
       </div>
     </div>
@@ -179,5 +179,13 @@ async function remove(id: string) {
   await load();
 }
 
-onMounted(load);
+const route = useRoute();
+onMounted(async () => {
+  await load();
+  const editId = route.query.edit as string | undefined;
+  if (editId) {
+    const match = celebrations.value.find((c: any) => c.id === editId);
+    if (match) startEdit(match);
+  }
+});
 </script>
