@@ -9,13 +9,13 @@
     <div v-if="successMsg" class="alert alert--success">{{ successMsg }}</div>
 
     <div class="card">
-      <h2>Novo ministério</h2>
+      <h2>{{ editingId ? "Editar ministério" : "Novo ministério" }}</h2>
       <div class="field">
         <label>Nome do ministério</label>
         <input v-model="form.name" type="text" placeholder="Ex: Comunicação" />
       </div>
 
-      <label style="font-size:0.86rem;font-weight:600;color:var(--orange-900);">Campos do formulário</label>
+      <label style="font-size:0.86rem;font-weight:600;color:var(--green-900);">Campos do formulário</label>
       <div v-for="(f, i) in form.fields" :key="i" class="grid-2" style="align-items:end;">
         <div class="field">
           <label>Rótulo (o que o voluntário vê)</label>
@@ -28,9 +28,10 @@
       </div>
       <button class="btn btn--ghost" @click="addField">+ Adicionar campo</button>
       <br /><br />
-      <button class="btn btn--primary" :disabled="saving" @click="createMinistry">
-        {{ saving ? "Salvando..." : "Criar ministério" }}
+      <button class="btn btn--primary" :disabled="saving" @click="save">
+        {{ saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar ministério" }}
       </button>
+      <button v-if="editingId" class="btn btn--ghost" style="margin-left:8px;" @click="cancelEdit">Cancelar</button>
     </div>
 
     <h2>Ministérios cadastrados</h2>
@@ -45,8 +46,9 @@
           <div class="muted">{{ (m.fields || []).map((f:any) => f.label).join(", ") }}</div>
         </div>
         <div>
-          <button v-if="m.active" class="btn btn--ghost" @click="toggleActive(m, false)">Desativar</button>
-          <button v-else class="btn btn--ghost" @click="toggleActive(m, true)">Ativar</button>
+          <button class="btn btn--ghost" @click="startEdit(m)">Editar</button>
+          <button v-if="m.active" class="btn btn--ghost" style="margin-left:8px;" @click="toggleActive(m, false)">Desativar</button>
+          <button v-else class="btn btn--ghost" style="margin-left:8px;" @click="toggleActive(m, true)">Ativar</button>
           <button class="btn btn--danger" style="margin-left:8px;" @click="remove(m.id)">Excluir</button>
         </div>
       </div>
@@ -64,11 +66,14 @@ const loading = ref(true);
 const saving = ref(false);
 const errorMsg = ref("");
 const successMsg = ref("");
+const editingId = ref<string | null>(null);
 
-const form = reactive<{ name: string; fields: { key: string; label: string; type: string; default: number }[] }>({
+const emptyForm = () => ({
   name: "",
   fields: [{ key: "presentes", label: "Voluntários presentes", type: "number", default: 0 }],
 });
+
+const form = reactive(emptyForm());
 
 function addField() {
   form.fields.push({ key: "", label: "", type: "number", default: 0 });
@@ -86,7 +91,19 @@ async function load() {
   loading.value = false;
 }
 
-async function createMinistry() {
+function startEdit(m: any) {
+  editingId.value = m.id;
+  form.name = m.name;
+  form.fields = (m.fields || []).map((f: any) => ({ ...f }));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  editingId.value = null;
+  Object.assign(form, emptyForm());
+}
+
+async function save() {
   errorMsg.value = "";
   if (!form.name || !form.fields.length || form.fields.some((f) => !f.key || !f.label)) {
     errorMsg.value = "Preencha o nome e todos os campos (chave e rótulo).";
@@ -95,17 +112,25 @@ async function createMinistry() {
   saving.value = true;
   try {
     const token = await getToken();
-    await call("/ministries", {
-      method: "POST",
-      token,
-      body: { name: form.name, fields: form.fields, sort_order: ministries.value.length + 1 },
-    });
-    successMsg.value = "Ministério criado!";
-    form.name = "";
-    form.fields = [{ key: "presentes", label: "Voluntários presentes", type: "number", default: 0 }];
+    if (editingId.value) {
+      await call(`/ministries/${editingId.value}`, {
+        method: "PUT",
+        token,
+        body: { name: form.name, fields: form.fields },
+      });
+      successMsg.value = "Ministério atualizado!";
+    } else {
+      await call("/ministries", {
+        method: "POST",
+        token,
+        body: { name: form.name, fields: form.fields, sort_order: ministries.value.length + 1 },
+      });
+      successMsg.value = "Ministério criado!";
+    }
+    cancelEdit();
     await load();
   } catch (e: any) {
-    errorMsg.value = "Erro ao criar ministério.";
+    errorMsg.value = "Erro ao salvar ministério.";
   } finally {
     saving.value = false;
   }

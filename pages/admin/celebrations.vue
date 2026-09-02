@@ -37,7 +37,7 @@
         <label><input v-model="form.is_recurring" type="checkbox" style="width:auto;margin-right:6px;" />Celebração recorrente (aparece só 1x por semana para os ministérios)</label>
       </div>
 
-      <label style="font-size:0.86rem;font-weight:600;color:var(--orange-900);">Ministérios que participam</label>
+      <label style="font-size:0.86rem;font-weight:600;color:var(--green-900);">Ministérios que participam</label>
       <p class="muted" style="margin-top:2px;">Todos vêm marcados por padrão — desmarque os que não se aplicam.</p>
       <div class="grid-2">
         <div v-for="m in allMinistries" :key="m.id" class="field" style="margin-bottom:6px;">
