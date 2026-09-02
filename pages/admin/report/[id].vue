@@ -25,7 +25,13 @@
           </div>
           <div class="field">
             <label>Contato</label>
-            <input v-model="editForm.respondent_contact" type="text" />
+            <input
+              :value="editForm.respondent_contact"
+              @input="onEditContactInput"
+              type="text"
+              inputmode="numeric"
+              maxlength="15"
+            />
           </div>
         </div>
         <div class="grid-2">
@@ -74,6 +80,7 @@ definePageMeta({ middleware: "admin" });
 const { call } = useApi();
 const supabase = useSupabaseClient();
 const route = useRoute();
+const { maskPhone } = usePhoneMask();
 
 const celebration = ref<any>(null);
 const submissions = ref<any[]>([]);
@@ -114,6 +121,11 @@ async function load() {
   celebration.value = res.celebration;
   submissions.value = res.submissions;
   loading.value = false;
+}
+
+function onEditContactInput(e: Event) {
+  const el = e.target as HTMLInputElement;
+  editForm.respondent_contact = maskPhone(el.value);
 }
 
 function startEdit(s: any) {

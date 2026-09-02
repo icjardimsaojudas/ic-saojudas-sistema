@@ -37,15 +37,15 @@
     <h2>Ministérios cadastrados</h2>
     <div v-if="loading" class="muted">Carregando...</div>
     <div v-for="m in ministries" :key="m.id" class="card">
-      <div class="list-item" style="border:none;padding:0;">
-        <div>
+      <div class="list-item" style="border:none;padding:0;flex-wrap:nowrap;align-items:flex-start;gap:12px;">
+        <div style="min-width:0;">
           <strong>{{ m.name }}</strong>
           <span class="badge" :class="m.active ? 'badge--done' : 'badge--pending'" style="margin-left:8px;">
             {{ m.active ? "Ativo" : "Inativo" }}
           </span>
           <div class="muted">{{ (m.fields || []).map((f:any) => f.label).join(", ") }}</div>
         </div>
-        <div>
+        <div style="flex-shrink:0;white-space:nowrap;">
           <button class="btn btn--ghost" @click="startEdit(m)">Editar</button>
           <button v-if="m.active" class="btn btn--ghost" style="margin-left:8px;" @click="toggleActive(m, false)">Desativar</button>
           <button v-else class="btn btn--ghost" style="margin-left:8px;" @click="toggleActive(m, true)">Ativar</button>

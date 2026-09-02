@@ -68,7 +68,14 @@
           </div>
           <div class="field">
             <label>Contato (whatsapp)</label>
-            <input v-model="respondentContact" type="text" placeholder="(00) 00000-0000" />
+            <input
+              :value="respondentContact"
+              @input="onContactInput"
+              type="text"
+              inputmode="numeric"
+              placeholder="(00) 00000-0000"
+              maxlength="15"
+            />
           </div>
         </div>
 
@@ -93,13 +100,13 @@
 
 <script setup lang="ts">
 const { call } = useApi();
+const { maskPhone, isValidPhone } = usePhoneMask();
 
 const step = ref(1);
 const celebrations = ref<any[]>([]);
 const loadingCelebrations = ref(true);
 const selectedCelebration = ref<any>(null);
 
-const ministries = ref<any[]>([]);
 const statusList = ref<any[]>([]);
 const loadingMinistries = ref(false);
 const selectedMinistry = ref<any>(null);
@@ -111,12 +118,17 @@ const submitting = ref(false);
 const errorMsg = ref("");
 const successMsg = ref("");
 
+// Só os ministérios selecionados pelo admin para esta celebração aparecem aqui
 const ministriesWithStatus = computed(() => {
-  return ministries.value.map((m) => {
-    const s = statusList.value.find((x) => x.ministries?.id === m.id);
-    return { ...m, status: s?.status || "pending" };
-  });
+  return statusList.value
+    .filter((s) => s.ministries)
+    .map((s) => ({ ...s.ministries, status: s.status }));
 });
+
+function onContactInput(e: Event) {
+  const el = e.target as HTMLInputElement;
+  respondentContact.value = maskPhone(el.value);
+}
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -141,12 +153,7 @@ async function selectCelebration(c: any) {
   loadingMinistries.value = true;
   errorMsg.value = "";
   try {
-    const [allMinistries, status] = await Promise.all([
-      call("/ministries"),
-      call(`/celebrations/${c.id}/status`),
-    ]);
-    ministries.value = allMinistries;
-    statusList.value = status;
+    statusList.value = await call(`/celebrations/${c.id}/status`);
   } catch (e: any) {
     errorMsg.value = "Não foi possível carregar os ministérios.";
   } finally {
@@ -165,6 +172,10 @@ async function submit() {
   errorMsg.value = "";
   if (!respondentName.value || !respondentContact.value) {
     errorMsg.value = "Informe seu nome e contato.";
+    return;
+  }
+  if (!isValidPhone(respondentContact.value)) {
+    errorMsg.value = "Informe um WhatsApp válido com DDD.";
     return;
   }
   submitting.value = true;

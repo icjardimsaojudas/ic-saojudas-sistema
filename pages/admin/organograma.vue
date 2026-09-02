@@ -83,7 +83,11 @@
                 <span class="org-member__dot" />
                 <span class="org-member__text">
                   <strong>{{ w.title }}</strong>
-                  <span v-if="w.base_leader_name"> ({{ w.base_leader_name }})</span>
+                  <span v-if="w.subtitle" class="org-member__subtitle">{{ w.subtitle }}</span>
+                  <span class="org-member__leaders">
+                    👤 {{ w.leader_name || "Sem líder" }}
+                    <span v-if="w.base_leader_name"> · Base: {{ w.base_leader_name }}</span>
+                  </span>
                 </span>
               </template>
             </div>
