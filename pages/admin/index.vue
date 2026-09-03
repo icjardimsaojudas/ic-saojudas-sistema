@@ -95,8 +95,8 @@ const loading = ref(true);
 const dragId = ref<string | null>(null);
 const overCol = ref<string | null>(null);
 
-const active = computed(() => celebrations.value.filter((c) => !c.archived));
-const archivedList = computed(() => celebrations.value.filter((c) => c.archived));
+const active = computed(() => celebrations.value.filter((c) => c.date && !c.archived));
+const archivedList = computed(() => celebrations.value.filter((c) => c.date && c.archived));
 
 function formatDate(d: string) {
   if (!d) return "";
