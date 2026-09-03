@@ -5,9 +5,14 @@
     </div>
     <div class="list-item" style="border:none;padding:0 0 8px;">
       <h1 style="margin:0;">Relatório da <em>Celebração</em></h1>
-      <button class="btn btn--gold" :disabled="!submissions.length" @click="downloadExcel">
-        Baixar Excel
-      </button>
+      <div>
+        <button class="btn btn--ghost" @click="showContact = !showContact">
+          {{ showContact ? "Ocultar nome/whatsapp" : "Mostrar nome/whatsapp" }}
+        </button>
+        <button class="btn btn--gold" style="margin-left:8px;" :disabled="!submissions.length" @click="downloadExcel">
+          Baixar Excel
+        </button>
+      </div>
     </div>
     <p v-if="celebration" class="muted">{{ celebration.label }} · {{ formatDate(celebration.date) }} · {{ celebration.salon }}</p>
 
@@ -36,7 +41,7 @@
         </div>
         <div class="grid-2">
           <div class="field" v-for="(value, key) in editForm.data" :key="key">
-            <label>{{ key }}</label>
+            <label>{{ fieldLabel(editingSubmission, key) }}</label>
             <input v-model.number="editForm.data[key]" type="number" />
           </div>
         </div>
@@ -53,7 +58,7 @@
             <button class="btn btn--ghost" @click="startEdit(s)">Editar</button>
           </div>
         </div>
-        <div class="muted" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+        <div v-if="showContact" class="muted" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">
           <span>{{ s.respondent_name }} · {{ s.respondent_contact }}</span>
           <a
             v-if="whatsappLink(s.respondent_contact)"
@@ -67,7 +72,7 @@
         </div>
         <div class="grid-2">
           <div v-for="(value, key) in s.data" :key="key">
-            <span class="muted">{{ key }}:</span> <strong>{{ value }}</strong>
+            <span class="muted">{{ fieldLabel(s, key) }}:</span> <strong>{{ value }}</strong>
           </div>
         </div>
       </template>
@@ -87,12 +92,19 @@ const submissions = ref<any[]>([]);
 const loading = ref(true);
 const errorMsg = ref("");
 const editingId = ref<string | null>(null);
+const editingSubmission = ref<any>(null);
+const showContact = ref(true);
 const editForm = reactive<{ respondent_name: string; respondent_contact: string; data: Record<string, any> }>({
   respondent_name: "",
   respondent_contact: "",
   data: {},
 });
 const saving = ref(false);
+
+function fieldLabel(submission: any, key: string) {
+  const field = submission?.ministries?.fields?.find((f: any) => f.key === key);
+  return field?.label || key;
+}
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -130,6 +142,7 @@ function onEditContactInput(e: Event) {
 
 function startEdit(s: any) {
   editingId.value = s.id;
+  editingSubmission.value = s;
   editForm.respondent_name = s.respondent_name;
   editForm.respondent_contact = s.respondent_contact;
   editForm.data = { ...s.data };
@@ -160,12 +173,19 @@ async function saveEdit(id: string) {
 
 async function downloadExcel() {
   const XLSX = await import("xlsx");
-  const rows = submissions.value.map((s) => ({
-    Ministério: s.ministries?.name || "",
-    Respondente: s.respondent_name,
-    Contato: s.respondent_contact,
-    ...s.data,
-  }));
+  const rows = submissions.value.map((s) => {
+    const row: Record<string, any> = {
+      Ministério: s.ministries?.name || "",
+    };
+    if (showContact.value) {
+      row.Respondente = s.respondent_name;
+      row.Contato = s.respondent_contact;
+    }
+    for (const [key, value] of Object.entries(s.data || {})) {
+      row[fieldLabel(s, key)] = value;
+    }
+    return row;
+  });
   const sheet = XLSX.utils.json_to_sheet(rows);
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "Relatório");

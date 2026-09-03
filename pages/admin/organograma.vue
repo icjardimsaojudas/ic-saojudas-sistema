@@ -70,10 +70,7 @@
             >
               <template v-if="editingId === w.id">
                 <input v-model="editForm.title" class="org-inline-input" placeholder="Título" @click.stop />
-                <input v-model="editForm.subtitle" class="org-inline-input" placeholder="Subtítulo" @click.stop />
                 <input v-model="editForm.leader_name" class="org-inline-input" placeholder="Líder do ministério" @click.stop />
-                <input v-model="editForm.base_leader_name" class="org-inline-input" placeholder="Líder de base" @click.stop />
-                <input v-model.number="editForm.volunteer_count" type="number" class="org-inline-input" placeholder="Voluntários" @click.stop />
                 <div @click.stop>
                   <button class="btn btn--primary" style="padding:4px 8px;font-size:0.72rem;" @click="saveEdit(w.id)">Salvar</button>
                   <button class="btn btn--danger" style="padding:4px 8px;font-size:0.72rem;margin-left:4px;" @click="remove(w.id)">Excluir</button>
@@ -83,10 +80,8 @@
                 <span class="org-member__dot" />
                 <span class="org-member__text">
                   <strong>{{ w.title }}</strong>
-                  <span v-if="w.subtitle" class="org-member__subtitle">{{ w.subtitle }}</span>
                   <span class="org-member__leaders">
                     👤 {{ w.leader_name || "Sem líder" }}
-                    <span v-if="w.base_leader_name"> · Base: {{ w.base_leader_name }}</span>
                   </span>
                 </span>
               </template>
@@ -163,10 +158,7 @@ function toggleEdit(node: any) {
   }
   editingId.value = node.id;
   editForm.title = node.title;
-  editForm.subtitle = node.subtitle;
   editForm.leader_name = node.leader_name;
-  editForm.base_leader_name = node.base_leader_name;
-  editForm.volunteer_count = node.volunteer_count;
 }
 
 function toggleEditBlue(node: any) {

@@ -16,15 +16,12 @@
       </div>
 
       <label style="font-size:0.86rem;font-weight:600;color:var(--green-900);">Campos do formulário</label>
-      <div v-for="(f, i) in form.fields" :key="i" class="grid-2" style="align-items:end;">
-        <div class="field">
-          <label>Rótulo (o que o voluntário vê)</label>
+      <div v-for="(f, i) in form.fields" :key="i" class="field" style="display:flex;gap:8px;align-items:end;">
+        <div style="flex:1;">
+          <label>O que o voluntário vai preencher</label>
           <input v-model="f.label" type="text" placeholder="Ex: Voluntários presentes" />
         </div>
-        <div class="field" style="display:flex;gap:8px;">
-          <input v-model="f.key" type="text" placeholder="chave_sem_espaco" style="flex:1;" />
-          <button class="btn btn--ghost" @click="form.fields.splice(i,1)">Remover</button>
-        </div>
+        <button class="btn btn--ghost" @click="form.fields.splice(i,1)">Remover</button>
       </div>
       <button class="btn btn--ghost" @click="addField">+ Adicionar campo</button>
       <br /><br />
@@ -79,6 +76,30 @@ function addField() {
   form.fields.push({ key: "", label: "", type: "number", default: 0 });
 }
 
+function slugify(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "campo";
+}
+
+function generateKeys(fields: { key?: string; label: string }[]) {
+  const seen = new Set<string>();
+  return fields.map((f) => {
+    let key = f.key && f.key.trim() ? f.key : slugify(f.label);
+    let n = 2;
+    while (seen.has(key)) {
+      key = `${f.key || slugify(f.label)}_${n}`;
+      n++;
+    }
+    seen.add(key);
+    return { ...f, key };
+  });
+}
+
 async function getToken() {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token || "";
@@ -105,10 +126,11 @@ function cancelEdit() {
 
 async function save() {
   errorMsg.value = "";
-  if (!form.name || !form.fields.length || form.fields.some((f) => !f.key || !f.label)) {
-    errorMsg.value = "Preencha o nome e todos os campos (chave e rótulo).";
+  if (!form.name || !form.fields.length || form.fields.some((f) => !f.label.trim())) {
+    errorMsg.value = "Preencha o nome e o texto de todos os campos.";
     return;
   }
+  form.fields = generateKeys(form.fields);
   saving.value = true;
   try {
     const token = await getToken();
