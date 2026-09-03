@@ -61,7 +61,7 @@
       <p class="muted">{{ selectedCelebration.label }} · {{ formatDate(selectedCelebration.date) }}</p>
 
       <div class="card">
-        <div class="grid-2">
+        <div class="grid-2" v-if="selectedCelebration.ask_contact !== false">
           <div class="field">
             <label>Seu nome</label>
             <input v-model="respondentName" type="text" placeholder="Nome completo" />
@@ -170,13 +170,16 @@ function selectMinistry(m: any) {
 
 async function submit() {
   errorMsg.value = "";
-  if (!respondentName.value || !respondentContact.value) {
-    errorMsg.value = "Informe seu nome e contato.";
-    return;
-  }
-  if (!isValidPhone(respondentContact.value)) {
-    errorMsg.value = "Informe um WhatsApp válido com DDD.";
-    return;
+  const needsContact = selectedCelebration.value.ask_contact !== false;
+  if (needsContact) {
+    if (!respondentName.value || !respondentContact.value) {
+      errorMsg.value = "Informe seu nome e contato.";
+      return;
+    }
+    if (!isValidPhone(respondentContact.value)) {
+      errorMsg.value = "Informe um WhatsApp válido com DDD.";
+      return;
+    }
   }
   submitting.value = true;
   try {

@@ -5,14 +5,9 @@
     </div>
     <div class="list-item" style="border:none;padding:0 0 8px;">
       <h1 style="margin:0;">Relatório da <em>Celebração</em></h1>
-      <div>
-        <button class="btn btn--ghost" @click="showContact = !showContact">
-          {{ showContact ? "Ocultar nome/whatsapp" : "Mostrar nome/whatsapp" }}
-        </button>
-        <button class="btn btn--gold" style="margin-left:8px;" :disabled="!submissions.length" @click="downloadExcel">
-          Baixar Excel
-        </button>
-      </div>
+      <button class="btn btn--gold" :disabled="!submissions.length" @click="downloadExcel">
+        Baixar Excel
+      </button>
     </div>
     <p v-if="celebration" class="muted">{{ celebration.label }} · {{ formatDate(celebration.date) }} · {{ celebration.salon }}</p>
 
@@ -58,7 +53,7 @@
             <button class="btn btn--ghost" @click="startEdit(s)">Editar</button>
           </div>
         </div>
-        <div v-if="showContact" class="muted" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+        <div v-if="s.respondent_name || s.respondent_contact" class="muted" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">
           <span>{{ s.respondent_name }} · {{ s.respondent_contact }}</span>
           <a
             v-if="whatsappLink(s.respondent_contact)"
@@ -93,7 +88,6 @@ const loading = ref(true);
 const errorMsg = ref("");
 const editingId = ref<string | null>(null);
 const editingSubmission = ref<any>(null);
-const showContact = ref(true);
 const editForm = reactive<{ respondent_name: string; respondent_contact: string; data: Record<string, any> }>({
   respondent_name: "",
   respondent_contact: "",
@@ -177,7 +171,7 @@ async function downloadExcel() {
     const row: Record<string, any> = {
       Ministério: s.ministries?.name || "",
     };
-    if (showContact.value) {
+    if (s.respondent_name || s.respondent_contact) {
       row.Respondente = s.respondent_name;
       row.Contato = s.respondent_contact;
     }

@@ -36,6 +36,9 @@
       <div class="field">
         <label><input v-model="form.is_recurring" type="checkbox" style="width:auto;margin-right:6px;" />Celebração recorrente (aparece só 1x por semana para os ministérios)</label>
       </div>
+      <div class="field">
+        <label><input v-model="form.ask_contact" type="checkbox" style="width:auto;margin-right:6px;" />Pedir nome e whatsapp de quem preenche</label>
+      </div>
 
       <label style="font-size:0.86rem;font-weight:600;color:var(--green-900);">Ministérios que participam</label>
       <p class="muted" style="margin-top:2px;">Todos vêm marcados por padrão — desmarque os que não se aplicam.</p>
@@ -95,6 +98,7 @@ const emptyForm = () => ({
   campus: "IC. Jardim São Judas",
   is_special: false,
   is_recurring: false,
+  ask_contact: true,
 });
 
 const form = reactive(emptyForm());
@@ -132,6 +136,7 @@ async function startEdit(c: any) {
   form.campus = c.campus;
   form.is_special = c.is_special;
   form.is_recurring = c.is_recurring;
+  form.ask_contact = c.ask_contact !== false;
 
   const token = await getToken();
   const status = await call(`/celebrations/${c.id}/status`, { token });
