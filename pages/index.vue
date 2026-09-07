@@ -42,7 +42,9 @@
         <div
           v-for="m in ministriesWithStatus"
           :key="m.id"
-          class="card card--clickable"
+          class="card"
+          :class="m.status === 'done' ? '' : 'card--clickable'"
+          :style="m.status === 'done' ? 'opacity:0.6;cursor:not-allowed;' : ''"
           @click="selectMinistry(m)"
         >
           <div class="list-item" style="border:none;padding:0;">
@@ -162,6 +164,11 @@ async function selectCelebration(c: any) {
 }
 
 function selectMinistry(m: any) {
+  if (m.status === "done") {
+    errorMsg.value = "Este ministério já enviou uma resposta para esta celebração.";
+    return;
+  }
+  errorMsg.value = "";
   selectedMinistry.value = m;
   Object.keys(formData).forEach((k) => delete formData[k]);
   (m.fields || []).forEach((f: any) => (formData[f.key] = f.default ?? 0));
@@ -199,7 +206,10 @@ async function submit() {
     respondentName.value = "";
     respondentContact.value = "";
   } catch (e: any) {
-    errorMsg.value = "Erro ao enviar. Tente novamente.";
+    errorMsg.value = e?.data?.error || "Erro ao enviar. Tente novamente.";
+    try {
+      statusList.value = await call(`/celebrations/${selectedCelebration.value.id}/status`);
+    } catch {}
   } finally {
     submitting.value = false;
   }

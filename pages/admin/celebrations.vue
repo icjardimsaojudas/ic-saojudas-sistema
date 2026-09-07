@@ -61,12 +61,19 @@
       </div>
 
       <label style="font-size:0.86rem;font-weight:600;color:var(--green-900);">Ministérios que participam</label>
-      <p class="muted" style="margin-top:2px;">Todos vêm marcados por padrão — desmarque os que não se aplicam.</p>
+      <p class="muted" style="margin-top:2px;">Todos vêm marcados por padrão — desmarque os que não se aplicam. Ministérios que já responderam ficam travados para não perder o que foi enviado.</p>
       <div class="grid-2">
         <div v-for="m in allMinistries" :key="m.id" class="field" style="margin-bottom:6px;">
           <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
-            <input type="checkbox" style="width:auto;" v-model="selectedMinistryIds" :value="m.id" />
+            <input
+              type="checkbox"
+              style="width:auto;"
+              v-model="selectedMinistryIds"
+              :value="m.id"
+              :disabled="doneMinistryIds.includes(m.id)"
+            />
             {{ m.name }}
+            <span v-if="doneMinistryIds.includes(m.id)" class="badge badge--done">Já respondeu</span>
           </label>
         </div>
       </div>
@@ -122,6 +129,7 @@ const templates = computed(() => celebrations.value.filter((c) => !c.date));
 const instances = computed(() => celebrations.value.filter((c) => c.date));
 const allMinistries = ref<any[]>([]);
 const selectedMinistryIds = ref<string[]>([]);
+const doneMinistryIds = ref<string[]>([]);
 const loading = ref(true);
 const saving = ref(false);
 const errorMsg = ref("");
@@ -186,6 +194,7 @@ async function startEdit(c: any) {
   const token = await getToken();
   const status = await call(`/celebrations/${c.id}/status`, { token });
   selectedMinistryIds.value = status.map((s: any) => s.ministries?.id).filter(Boolean);
+  doneMinistryIds.value = status.filter((s: any) => s.status === "done").map((s: any) => s.ministries?.id).filter(Boolean);
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -194,6 +203,7 @@ function cancelEdit() {
   editingId.value = null;
   Object.assign(form, emptyForm());
   selectedMinistryIds.value = allMinistries.value.map((m) => m.id);
+  doneMinistryIds.value = [];
 }
 
 async function save() {
