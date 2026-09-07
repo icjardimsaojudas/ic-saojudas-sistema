@@ -59,6 +59,10 @@
       <div class="field">
         <label><input v-model="form.ask_contact" type="checkbox" style="width:auto;margin-right:6px;" />Pedir nome e whatsapp de quem preenche</label>
       </div>
+      <div class="field">
+        <label>Cor (para diferenciar quando houver várias celebrações)</label>
+        <input v-model="form.color" type="color" style="width:70px;height:38px;padding:2px;" />
+      </div>
 
       <label style="font-size:0.86rem;font-weight:600;color:var(--green-900);">Ministérios que participam</label>
       <p class="muted" style="margin-top:2px;">Todos vêm marcados por padrão — desmarque os que não se aplicam. Ministérios que já responderam ficam travados para não perder o que foi enviado.</p>
@@ -87,7 +91,7 @@
     <h2>Modelos semanais (recorrentes)</h2>
     <p class="muted" style="margin-top:-4px;">O sistema gera a data da semana automaticamente a partir daqui.</p>
     <div v-if="loading" class="muted">Carregando...</div>
-    <div v-for="c in templates" :key="c.id" class="card">
+    <div v-for="c in templates" :key="c.id" class="card" :style="{ borderLeft: `4px solid ${c.color || 'var(--line)'}` }">
       <div class="list-item" style="border:none;padding:0;">
         <div>
           <strong>{{ c.label }}</strong>
@@ -102,7 +106,7 @@
     </div>
 
     <h2>Celebrações cadastradas</h2>
-    <div v-for="c in instances" :key="c.id" class="card">
+    <div v-for="c in instances" :key="c.id" class="card" :style="{ borderLeft: `4px solid ${c.color || 'var(--line)'}` }">
       <div class="list-item" style="border:none;padding:0;">
         <div>
           <strong>{{ c.label }}</strong>
@@ -151,6 +155,7 @@ const emptyForm = () => ({
   is_special: false,
   is_recurring: false,
   ask_contact: true,
+  color: "#146356",
 });
 
 const form = reactive(emptyForm());
@@ -190,6 +195,7 @@ async function startEdit(c: any) {
   form.is_special = c.is_special;
   form.is_recurring = c.is_recurring && !c.template_id;
   form.ask_contact = c.ask_contact !== false;
+  form.color = c.color || "#146356";
 
   const token = await getToken();
   const status = await call(`/celebrations/${c.id}/status`, { token });
@@ -231,6 +237,7 @@ async function save() {
       is_special: form.is_special,
       is_recurring: form.is_recurring,
       ask_contact: form.ask_contact,
+      color: form.color,
       ministry_ids: selectedMinistryIds.value,
       date: form.is_recurring ? null : form.date,
       weekday: form.is_recurring ? form.weekday : null,

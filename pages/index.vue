@@ -25,6 +25,7 @@
           v-for="c in celebrations"
           :key="c.id"
           class="card card--clickable"
+          :style="{ borderLeft: `4px solid ${c.color || 'var(--line)'}` }"
           @click="selectCelebration(c)"
         >
           <strong>{{ c.label }}</strong>

@@ -27,6 +27,7 @@
             v-for="c in active"
             :key="c.id"
             class="kanban__card"
+            :style="{ borderLeft: `4px solid ${c.color || 'var(--line)'}` }"
             draggable="true"
             @dragstart="dragId = c.id"
           >
@@ -62,6 +63,7 @@
             v-for="c in archivedList"
             :key="c.id"
             class="kanban__card"
+            :style="{ borderLeft: `4px solid ${c.color || 'var(--line)'}` }"
             draggable="true"
             @dragstart="dragId = c.id"
           >
