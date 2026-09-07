@@ -121,11 +121,12 @@ const submitting = ref(false);
 const errorMsg = ref("");
 const successMsg = ref("");
 
-// Só os ministérios selecionados pelo admin para esta celebração aparecem aqui
+// Só os ministérios selecionados pelo admin para esta celebração aparecem aqui, em ordem alfabética
 const ministriesWithStatus = computed(() => {
   return statusList.value
     .filter((s) => s.ministries)
-    .map((s) => ({ ...s.ministries, status: s.status }));
+    .map((s) => ({ ...s.ministries, status: s.status }))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 });
 
 function onContactInput(e: Event) {

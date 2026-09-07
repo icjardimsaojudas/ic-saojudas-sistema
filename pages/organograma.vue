@@ -61,7 +61,7 @@ const blueNodes = computed(() => nodes.value.filter((n) => n.color === "blue").s
 function childrenOf(parentId: string) {
   return nodes.value
     .filter((n) => n.color === "white" && n.parent_id === parentId)
-    .sort((a, b) => a.sort_order - b.sort_order);
+    .sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
 }
 
 async function load() {
