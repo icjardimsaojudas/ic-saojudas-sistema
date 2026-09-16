@@ -60,7 +60,7 @@
         >
           <h3>Arquivados</h3>
           <div v-if="!archivedList.length" class="muted">Nenhum relatório arquivado.</div>
-          <details v-for="(g, idx) in archivedGroups" :key="g.label" class="group" :open="idx === 0">
+          <details v-for="(g, idx) in archivedGroups" :key="g.label" class="group group--muted" :open="idx === 0">
             <summary>{{ g.label }} <span class="count">{{ g.items.length }}</span></summary>
             <div class="group__body">
               <div

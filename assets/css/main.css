@@ -372,7 +372,6 @@ a { color: var(--green-700); }
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
-  overflow: hidden;
 }
 .group > summary {
   cursor: pointer;
@@ -384,10 +383,13 @@ a { color: var(--green-700); }
   text-transform: uppercase;
   color: var(--green-900);
   background: var(--green-100);
+  border-radius: 9px 9px 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+.group:not([open]) > summary { border-radius: 9px; }
+.group--muted > summary { background: #ececea; color: var(--ink-soft); }
 .group > summary::-webkit-details-marker { display: none; }
 .group > summary::after {
   content: "▾";
@@ -408,7 +410,9 @@ a { color: var(--green-700); }
 .card-menu {
   position: relative;
   flex-shrink: 0;
+  z-index: 1;
 }
+.card-menu[open] { z-index: 20; }
 .card-menu > summary {
   cursor: pointer;
   list-style: none;

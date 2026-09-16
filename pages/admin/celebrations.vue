@@ -124,11 +124,11 @@
       </div>
     </details>
 
-    <details class="group" style="margin-top:20px;">
+    <details class="group group--muted" style="margin-top:20px;">
       <summary>Relatórios arquivados <span class="count">{{ archivedInstances.length }}</span></summary>
       <div class="group__body">
         <div v-if="!archivedGroups.length" class="muted">Nenhum relatório arquivado.</div>
-        <details v-for="g in archivedGroups" :key="g.label" class="group">
+        <details v-for="g in archivedGroups" :key="g.label" class="group group--muted">
           <summary>{{ g.label }} <span class="count">{{ g.items.length }}</span></summary>
           <div class="group__body">
             <div v-for="c in g.items" :key="c.id" class="card" :style="{ borderLeft: `4px solid ${c.color || 'var(--line)'}` }">
