@@ -6,11 +6,12 @@
 
     <div v-if="loading" class="muted">Carregando...</div>
 
-    <template v-else-if="submission">
+    <template v-else-if="primary">
       <div class="list-item" style="border:none;padding:0 0 8px;">
         <h1 style="margin:0;">
-          {{ submission.attended_name || "Sem nome" }}
-          <span class="pastoral-type-tag">Etapa {{ submission.stage }}</span>
+          {{ (stage1 || primary).attended_name || "Sem nome" }}
+          <span v-if="merged" class="pastoral-type-tag" style="color:var(--green-700);">Ficha completa</span>
+          <span v-else class="pastoral-type-tag">Etapa {{ primary.stage }}</span>
         </h1>
         <div>
           <button v-if="!editing" class="btn btn--ghost" @click="startEdit">Editar</button>
@@ -18,7 +19,7 @@
         </div>
       </div>
       <p class="muted">
-        {{ submission.stage === 2 ? "Atendido por " + (submission.attended_by || "—") + " · " : "" }}{{ formatDateTime(submission.submitted_at) }}
+        {{ stage2 && stage2.attended_by ? "Atendido por " + stage2.attended_by + " · " : "" }}{{ formatDateTime(primary.submitted_at) }}
       </p>
 
       <div v-if="errorMsg" class="alert alert--error">{{ errorMsg }}</div>
@@ -27,12 +28,8 @@
       <!-- Vínculo -->
       <div class="card">
         <h2>Vínculo com a outra etapa</h2>
-        <template v-if="linked">
-          <p>Vinculada com:
-            <NuxtLink :to="'/admin/pastoral/' + linked.id">
-              <strong>{{ linked.attended_name || "Sem nome" }}</strong> (Etapa {{ linked.stage }})
-            </NuxtLink>
-          </p>
+        <template v-if="merged">
+          <p class="muted">As duas etapas estão vinculadas e exibidas como uma única ficha abaixo.</p>
           <button class="btn btn--ghost" @click="unlink">Desvincular</button>
         </template>
         <template v-else>
@@ -50,9 +47,26 @@
         </template>
       </div>
 
-      <div class="card">
-        <h2>Respostas</h2>
-        <template v-for="(item, i) in (editing ? editData : submission.data)" :key="'d-' + i">
+      <!-- Etapa 1 -->
+      <div v-if="stage1" class="card">
+        <h2>1. Pessoa atendida</h2>
+        <template v-for="(item, i) in (editing ? editData1 : stage1.data)" :key="'s1-' + i">
+          <div v-if="!editing" class="pastoral-answer">
+            <div class="pastoral-answer__label">{{ item.label }}</div>
+            <div class="pastoral-answer__value">{{ displayValue(item.value) }}</div>
+          </div>
+          <div v-else class="field">
+            <label>{{ item.label }}</label>
+            <textarea v-if="Array.isArray(item.value) || item.type === 'textarea'" v-model="editableValue(item).value" rows="2" />
+            <input v-else v-model="editableValue(item).value" type="text" />
+          </div>
+        </template>
+      </div>
+
+      <!-- Etapa 2 -->
+      <div v-if="stage2" class="card">
+        <h2>2. Atendimento</h2>
+        <template v-for="(item, i) in (editing ? editData2 : stage2.data)" :key="'s2-' + i">
           <div v-if="!editing" class="pastoral-answer">
             <div class="pastoral-answer__label">{{ item.label }}</div>
             <div class="pastoral-answer__value">{{ displayValue(item.value) }}</div>
@@ -80,8 +94,8 @@ const supabase = useSupabaseClient();
 const route = useRoute();
 const router = useRouter();
 
-const submission = ref<any>(null);
-const linked = ref<any>(null);
+const primary = ref<any>(null); // ficha carregada pela URL
+const other = ref<any>(null);   // a vinculada a ela, se houver
 const candidates = ref<any[]>([]);
 const selectedCandidate = ref("");
 const loading = ref(true);
@@ -90,7 +104,20 @@ const saving = ref(false);
 const errorMsg = ref("");
 const successMsg = ref("");
 
-const editData = ref<any[]>([]);
+const editData1 = ref<any[]>([]);
+const editData2 = ref<any[]>([]);
+
+const merged = computed(() => !!other.value);
+const stage1 = computed(() => {
+  if (primary.value?.stage === 1) return primary.value;
+  if (other.value?.stage === 1) return other.value;
+  return null;
+});
+const stage2 = computed(() => {
+  if (primary.value?.stage === 2) return primary.value;
+  if (other.value?.stage === 2) return other.value;
+  return null;
+});
 
 function displayValue(value: any) {
   if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
@@ -123,16 +150,16 @@ async function load() {
   errorMsg.value = "";
   successMsg.value = "";
   const token = await getToken();
-  submission.value = await call("/pastoral-submissions/" + route.params.id, { token });
+  primary.value = await call("/pastoral-submissions/" + route.params.id, { token });
 
-  if (submission.value.linked_id) {
-    linked.value = await call("/pastoral-submissions/" + submission.value.linked_id, { token });
+  if (primary.value.linked_id) {
+    other.value = await call("/pastoral-submissions/" + primary.value.linked_id, { token });
     candidates.value = [];
   } else {
-    linked.value = null;
+    other.value = null;
     const unlinked = await call("/pastoral-submissions?unlinked=true", { token });
-    const otherStage = submission.value.stage === 1 ? 2 : 1;
-    candidates.value = unlinked.filter((s: any) => s.stage === otherStage && s.id !== submission.value.id);
+    const otherStage = primary.value.stage === 1 ? 2 : 1;
+    candidates.value = unlinked.filter((s: any) => s.stage === otherStage && s.id !== primary.value.id);
   }
   selectedCandidate.value = "";
   loading.value = false;
@@ -140,7 +167,8 @@ async function load() {
 
 function startEdit() {
   errorMsg.value = "";
-  editData.value = (submission.value.data || []).map((f: any) => ({ ...f, _wasArray: Array.isArray(f.value) }));
+  editData1.value = (stage1.value?.data || []).map((f: any) => ({ ...f, _wasArray: Array.isArray(f.value) }));
+  editData2.value = (stage2.value?.data || []).map((f: any) => ({ ...f, _wasArray: Array.isArray(f.value) }));
   editing.value = true;
 }
 
@@ -149,12 +177,13 @@ async function save() {
   errorMsg.value = "";
   try {
     const token = await getToken();
-    const clean = editData.value.map(({ _wasArray, ...rest }) => rest);
-    await call("/pastoral-submissions/" + route.params.id, {
-      method: "PUT",
-      token,
-      body: { data: clean },
-    });
+    const clean = (arr: any[]) => arr.map(({ _wasArray, ...rest }) => rest);
+    if (stage1.value) {
+      await call("/pastoral-submissions/" + stage1.value.id, { method: "PUT", token, body: { data: clean(editData1.value) } });
+    }
+    if (stage2.value) {
+      await call("/pastoral-submissions/" + stage2.value.id, { method: "PUT", token, body: { data: clean(editData2.value) } });
+    }
     editing.value = false;
     await load();
   } catch (e: any) {
@@ -182,7 +211,7 @@ async function link() {
 }
 
 async function unlink() {
-  if (!confirm("Desvincular estas fichas?")) return;
+  if (!confirm("Desvincular estas fichas? Elas voltarão a aparecer separadas.")) return;
   errorMsg.value = "";
   successMsg.value = "";
   try {
@@ -196,7 +225,10 @@ async function unlink() {
 }
 
 async function remove() {
-  if (!confirm("Excluir esta ficha de atendimento? Essa ação não pode ser desfeita.")) return;
+  const msg = merged.value
+    ? "Excluir esta ficha? Só a etapa aberta nesta página será excluída; a outra etapa fica sem vínculo."
+    : "Excluir esta ficha de atendimento? Essa ação não pode ser desfeita.";
+  if (!confirm(msg)) return;
   const token = await getToken();
   await call("/pastoral-submissions/" + route.params.id, { method: "DELETE", token });
   router.push("/admin/pastoral");
