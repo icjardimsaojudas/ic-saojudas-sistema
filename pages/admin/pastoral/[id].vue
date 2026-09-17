@@ -8,34 +8,51 @@
 
     <template v-else-if="submission">
       <div class="list-item" style="border:none;padding:0 0 8px;">
-        <h1 style="margin:0;">{{ submission.attended_name || "Sem nome" }}</h1>
+        <h1 style="margin:0;">
+          {{ submission.attended_name || "Sem nome" }}
+          <span class="pastoral-type-tag">Etapa {{ submission.stage }}</span>
+        </h1>
         <div>
           <button v-if="!editing" class="btn btn--ghost" @click="startEdit">Editar</button>
           <button class="btn btn--danger" @click="remove">Excluir</button>
         </div>
       </div>
-      <p class="muted">Atendido por {{ submission.attended_by || "—" }} · {{ formatDateTime(submission.submitted_at) }}</p>
+      <p class="muted">
+        {{ submission.stage === 2 ? "Atendido por " + (submission.attended_by || "—") + " · " : "" }}{{ formatDateTime(submission.submitted_at) }}
+      </p>
 
       <div v-if="errorMsg" class="alert alert--error">{{ errorMsg }}</div>
+      <div v-if="successMsg" class="alert alert--success">{{ successMsg }}</div>
 
+      <!-- Vínculo -->
       <div class="card">
-        <h2>1. Pessoa atendida</h2>
-        <template v-for="(item, i) in (editing ? editStage1 : submission.stage1_data)" :key="'s1-' + i">
-          <div v-if="!editing" class="pastoral-answer">
-            <div class="pastoral-answer__label">{{ item.label }}</div>
-            <div class="pastoral-answer__value">{{ displayValue(item.value) }}</div>
-          </div>
-          <div v-else class="field">
-            <label>{{ item.label }}</label>
-            <textarea v-if="Array.isArray(item.value) || item.type === 'textarea'" v-model="editableValue(item).value" rows="2" />
-            <input v-else v-model="editableValue(item).value" type="text" />
-          </div>
+        <h2>Vínculo com a outra etapa</h2>
+        <template v-if="linked">
+          <p>Vinculada com:
+            <NuxtLink :to="'/admin/pastoral/' + linked.id">
+              <strong>{{ linked.attended_name || "Sem nome" }}</strong> (Etapa {{ linked.stage }})
+            </NuxtLink>
+          </p>
+          <button class="btn btn--ghost" @click="unlink">Desvincular</button>
+        </template>
+        <template v-else>
+          <p class="muted">Ainda não vinculada. Selecione a ficha correspondente da outra etapa.</p>
+          <div v-if="!candidates.length" class="muted">Nenhuma ficha não vinculada da outra etapa disponível.</div>
+          <template v-else>
+            <select v-model="selectedCandidate">
+              <option value="">Selecione...</option>
+              <option v-for="c in candidates" :key="c.id" :value="c.id">
+                {{ c.attended_name || "Sem nome" }} · {{ formatDateTime(c.submitted_at) }}
+              </option>
+            </select>
+            <button class="btn btn--primary" style="margin-top:8px;" :disabled="!selectedCandidate" @click="link">Vincular</button>
+          </template>
         </template>
       </div>
 
       <div class="card">
-        <h2>2. Atendimento</h2>
-        <template v-for="(item, i) in (editing ? editStage2 : submission.stage2_data)" :key="'s2-' + i">
+        <h2>Respostas</h2>
+        <template v-for="(item, i) in (editing ? editData : submission.data)" :key="'d-' + i">
           <div v-if="!editing" class="pastoral-answer">
             <div class="pastoral-answer__label">{{ item.label }}</div>
             <div class="pastoral-answer__value">{{ displayValue(item.value) }}</div>
@@ -64,13 +81,16 @@ const route = useRoute();
 const router = useRouter();
 
 const submission = ref<any>(null);
+const linked = ref<any>(null);
+const candidates = ref<any[]>([]);
+const selectedCandidate = ref("");
 const loading = ref(true);
 const editing = ref(false);
 const saving = ref(false);
 const errorMsg = ref("");
+const successMsg = ref("");
 
-const editStage1 = ref<any[]>([]);
-const editStage2 = ref<any[]>([]);
+const editData = ref<any[]>([]);
 
 function displayValue(value: any) {
   if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
@@ -100,15 +120,27 @@ async function getToken() {
 
 async function load() {
   loading.value = true;
+  errorMsg.value = "";
+  successMsg.value = "";
   const token = await getToken();
   submission.value = await call("/pastoral-submissions/" + route.params.id, { token });
+
+  if (submission.value.linked_id) {
+    linked.value = await call("/pastoral-submissions/" + submission.value.linked_id, { token });
+    candidates.value = [];
+  } else {
+    linked.value = null;
+    const unlinked = await call("/pastoral-submissions?unlinked=true", { token });
+    const otherStage = submission.value.stage === 1 ? 2 : 1;
+    candidates.value = unlinked.filter((s: any) => s.stage === otherStage && s.id !== submission.value.id);
+  }
+  selectedCandidate.value = "";
   loading.value = false;
 }
 
 function startEdit() {
   errorMsg.value = "";
-  editStage1.value = (submission.value.stage1_data || []).map((f: any) => ({ ...f, _wasArray: Array.isArray(f.value) }));
-  editStage2.value = (submission.value.stage2_data || []).map((f: any) => ({ ...f, _wasArray: Array.isArray(f.value) }));
+  editData.value = (submission.value.data || []).map((f: any) => ({ ...f, _wasArray: Array.isArray(f.value) }));
   editing.value = true;
 }
 
@@ -117,14 +149,11 @@ async function save() {
   errorMsg.value = "";
   try {
     const token = await getToken();
-    const clean = (arr: any[]) => arr.map(({ _wasArray, ...rest }) => rest);
+    const clean = editData.value.map(({ _wasArray, ...rest }) => rest);
     await call("/pastoral-submissions/" + route.params.id, {
       method: "PUT",
       token,
-      body: {
-        stage1_data: clean(editStage1.value),
-        stage2_data: clean(editStage2.value),
-      },
+      body: { data: clean },
     });
     editing.value = false;
     await load();
@@ -132,6 +161,37 @@ async function save() {
     errorMsg.value = "Erro ao salvar.";
   } finally {
     saving.value = false;
+  }
+}
+
+async function link() {
+  errorMsg.value = "";
+  successMsg.value = "";
+  try {
+    const token = await getToken();
+    await call("/pastoral-submissions/" + route.params.id + "/link", {
+      method: "POST",
+      token,
+      body: { target_id: selectedCandidate.value },
+    });
+    successMsg.value = "Fichas vinculadas!";
+    await load();
+  } catch (e: any) {
+    errorMsg.value = "Erro ao vincular.";
+  }
+}
+
+async function unlink() {
+  if (!confirm("Desvincular estas fichas?")) return;
+  errorMsg.value = "";
+  successMsg.value = "";
+  try {
+    const token = await getToken();
+    await call("/pastoral-submissions/" + route.params.id + "/unlink", { method: "POST", token });
+    successMsg.value = "Fichas desvinculadas.";
+    await load();
+  } catch (e: any) {
+    errorMsg.value = "Erro ao desvincular.";
   }
 }
 
