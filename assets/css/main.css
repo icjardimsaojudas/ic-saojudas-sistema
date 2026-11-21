@@ -89,7 +89,7 @@ a { color: var(--green-700); }
 .topbar__nav a:hover { color: var(--green-900); background: var(--cream); }
 .topbar__nav a.router-link-exact-active { color: var(--green-900); background: var(--green-100); }
 .topbar__nav a.topbar__admin { border: 1px solid var(--line); background: #fff; }
-.topbar__toggle { display: none; }
+.topbar .topbar__toggle { display: none; }
 
 .icon-btn {
   width: 44px; height: 44px; border-radius: var(--radius-sm);
@@ -98,7 +98,7 @@ a { color: var(--green-700); }
 }
 
 @media (max-width: 720px) {
-  .topbar__toggle { display: inline-flex; }
+  .topbar .topbar__toggle { display: inline-flex; }
   .topbar__nav { display: none; width: 100%; flex-direction: column; align-items: stretch; padding-top: 6px; }
   .topbar__nav.is-open { display: flex; }
   .topbar__nav a { padding: 12px 14px; }
